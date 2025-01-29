@@ -8,7 +8,9 @@ This project extracts data from an SQLite database and Excel sheets, processes t
 
 ```bash
 pip install -r requirements.txt
-2- Write your api key in the API.env file
+2- Write your api key in the 10th line in vectorDB.py file
+"genai.configure(api_key='Your_API_KEY')"
+
 
 
 ### Database_creation.py:
