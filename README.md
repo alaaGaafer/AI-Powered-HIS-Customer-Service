@@ -1,15 +1,14 @@
-"# AI-Powered-HIS-Customer-Service" 
-
-# Hospital Data Processing and Query System
+# AI-Powered-HIS-Customer-Service" 
 
 ## Overview
 This project extracts data from an SQLite database and Excel sheets, processes the data, stores it in ChromaDB, and allows for querying using an AI model. The system utilizes various technologies, including ChromaDB, SentenceTransformers, and Google Gemini for query answering. The project is designed to handle hospital data, including information about physicians, schedules, services, and policies.
 
 ## Requirements
-Before running the project, ensure that the required dependencies are installed. You can install them by running the following command:
+1- Before running the project, ensure that the required dependencies are installed. You can install them by running the following command:
 
 ```bash
 pip install -r requirements.txt
+2- Write your api key in the API.env file
 
 
 ### Database_creation.py:
