@@ -5,6 +5,9 @@ from sentence_transformers import SentenceTransformer
 import numpy as np
 import os  
 import google.generativeai as genai
+from collections import deque
+
+genai.configure(api_key='Your_API_KEY')
 
 # Initialize ChromaDB client and embedding model
 client = chromadb.Client()
@@ -23,7 +26,7 @@ def extract_data():
     """)
     physicians_data = cursor.fetchall()
 
-    cursor.execute("""
+    cursor.execute(""" 
         SELECT Physicians.name, Schedules.monday, Schedules.tuesday, Schedules.wednesday, 
                Schedules.thursday, Schedules.friday, Schedules.saturday, Schedules.sunday 
         FROM Physicians 
@@ -59,7 +62,7 @@ def process_and_store():
 
     # Process schedules data
     for doctor_name, mon, tue, wed, thu, fri, sat, sun in schedules_data:
-        text = f"Dr. {doctor_name} Times are: Monday: {mon}, Tuesday: {tue}, Wednesday: {wed}, Thursday: {thu}, Friday: {fri}, Saturday: {sat}, Sunday: {sun}."
+        text = f"Dr. {doctor_name} availability Times are: Monday: {mon}, Tuesday: {tue}, Wednesday: {wed}, Thursday: {thu}, Friday: {fri}, Saturday: {sat}, Sunday: {sun}."
         docs.append((text, {"doctor": doctor_name}))
 
     # Process services data
@@ -79,7 +82,17 @@ def process_and_store():
             embedding = embedding_model.encode(chunk).tolist()
             collection.add(documents=[chunk], metadatas=[metadata], embeddings=[embedding], ids=[f"{i}_{chunks.index(chunk)}"])
 
-    print("Data successfully stored in ChromaDB.")
+process_and_store()
+
+# Rag starts here
+
+# Initialize the memory buffer to Store the last 5 interactions
+N = 5
+memory_buffer = deque(maxlen=N) 
+
+# Function to add interactions to memory buffer
+def add_to_memory(query, answer):
+    memory_buffer.append({"query": query, "answer": answer})
 
 # Perform similarity search for a query
 def perform_query(query):
@@ -92,33 +105,48 @@ def perform_query(query):
     # Retrieve top results
     return results['documents']
 
-def generate_answer_with_gemini(documents, query):
-    # load_dotenv('API.env')  # Load environment variables
-    # gemini_api_key = os.getenv('GEMINI_API_KEY')
-    genai.configure(api_key='AIzaSyB4V3q1GvCY8R_RJfHFCNQOf7GKfL2eoqI')
 
-    
+def generate_answer_with_memory(documents, query):
+    # Load the context from memory buffer (past conversations)
+    context = ""
+    for memory in memory_buffer:
+        context += f"Q: {memory['query']}\nA: {memory['answer']}\n"
+
     # Flatten the list of documents into strings only
     document_texts = [doc[0] for doc in documents]  
     
-    # Combine the retrieved documents into a prompt for Gemini
-    context = "\n".join(document_texts)
-    prompt = f"You are a customer service chatbot in a hospital. Your task is to help the user by answering their query from the provided context. If you don't know the answer, say you don't know and don't come up with an answer from your own. Answer the following question based on the context below:\n\nContext:\n{context}\n\nQuestion: {query}\nAnswer:"
+    # Combine memory and documents context
+    context += "\n".join(document_texts)
     
+    # Prepare the prompt with context and the current query
+    prompt = f"You are a customer service chatbot in a hospital. Your task is to help the user by answering their query from the provided context. Please answer with all the relevant details found in the context below:\n\nContext:\n{context}\n\nQuestion: {query}\nAnswer:"
+    
+    # Call the Gemini API for content generation
     model = genai.GenerativeModel(model_name='gemini-pro')
     response = model.generate_content(prompt)  
+
+    # Save the query and answer in memory buffer
+    add_to_memory(query, response.text.strip())
 
     return response.text.strip()
 
 
 # Example usage
-process_and_store()
+#  who are the doctors whose specilitiy is Cardiologist
+#  what time is she available in?
+#  but I asked about dr.alice's time
+#  how much is her service is gonna cost
+#  what is the hospital policy ?
 
-query = "What are the doctors names and availability?"
-top_docs = perform_query(query)
-
-for doc in top_docs:
-    print(doc)
-
-answer = generate_answer_with_gemini(top_docs, query)
-print("Answer:", answer)
+for _ in range(N):  # Asking N times
+    query = input("Please enter a query or end to exit: ")  # asks user for input
+    if query == "end":
+        break
+    top_docs = perform_query(query)
+    
+    # Display the top documents found just for checking
+    # for doc in top_docs:
+    #     print(doc)
+    
+    answer = generate_answer_with_memory(top_docs, query)
+    print("Answer:", answer)

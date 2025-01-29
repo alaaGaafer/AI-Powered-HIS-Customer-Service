@@ -19,7 +19,6 @@ langchain-openai==0.0.7
 chromadb==0.4.22  # If using ChromaDB
 
 # Embeddings & LLMs
-openai==1.11.1
 sentence-transformers==2.2.2
 transformers==4.30.2  # For tokenization and model handling
 
