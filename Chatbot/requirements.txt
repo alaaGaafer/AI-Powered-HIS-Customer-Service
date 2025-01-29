@@ -21,10 +21,13 @@ chromadb==0.4.22  # If using ChromaDB
 # Embeddings & LLMs
 openai==1.11.1
 sentence-transformers==2.2.2
+transformers==4.30.2  # For tokenization and model handling
 
 # Streamlit for UI
 streamlit==1.30.0
 
 # Other utilities
-python-dotenv==1.0.1  # For managing API keys
-requests==2.31.0  # For making HTTP requests
+python-dotenv==1.0.1  
+requests==2.31.0  
+torch==2.1.0  
+google-generativeai==0.1.0  
